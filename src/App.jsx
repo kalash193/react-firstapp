@@ -114,7 +114,11 @@ function App() {
       setAuthNotice('')
       setActivePanel(null)
     } catch (error) {
-      setAuthNotice(error.message)
+      setAuthNotice(
+        error.message === 'Failed to fetch'
+          ? 'Cannot reach the PHP backend. Start it with: php -S 127.0.0.1:8000 -t backend/public'
+          : error.message,
+      )
     }
   }
 
@@ -230,7 +234,11 @@ function App() {
       setCartItems([])
       setActivePanel('placed')
     } catch (error) {
-      setCheckoutNotice(error.message)
+      setCheckoutNotice(
+        error.message === 'Failed to fetch'
+          ? 'Cannot reach the PHP backend. Start it with: php -S 127.0.0.1:8000 -t backend/public'
+          : error.message,
+      )
     }
   }
 
