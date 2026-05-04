@@ -2,9 +2,10 @@ import React, { useState } from 'react'
 
 const AuthPanel = ({ notice, onSubmit, onClose }) => {
   const [form, setForm] = useState({
+    mode: 'login',
     name: '',
     email: 'admin@kalash.local',
-    password: 'admin123',
+    password: 'admin12345',
   })
 
   const updateField = (event) => {
@@ -31,16 +32,35 @@ const AuthPanel = ({ notice, onSubmit, onClose }) => {
 
       {notice ? <p className="auth-notice">{notice}</p> : null}
 
+      <div className="auth-mode-toggle">
+        <button
+          className={form.mode === 'login' ? 'active' : ''}
+          type="button"
+          onClick={() => setForm((currentForm) => ({ ...currentForm, mode: 'login' }))}
+        >
+          Login
+        </button>
+        <button
+          className={form.mode === 'register' ? 'active' : ''}
+          type="button"
+          onClick={() => setForm((currentForm) => ({ ...currentForm, mode: 'register' }))}
+        >
+          Register
+        </button>
+      </div>
+
       <div className="checkout-form-grid auth-form-grid">
-        <label>
-          Name
-          <input
-            name="name"
-            value={form.name}
-            onChange={updateField}
-            placeholder="Kalash Date"
-          />
-        </label>
+        {form.mode === 'register' ? (
+          <label>
+            Name
+            <input
+              name="name"
+              value={form.name}
+              onChange={updateField}
+              placeholder="Kalash Date"
+            />
+          </label>
+        ) : null}
         <label>
           Email
           <input
@@ -51,7 +71,7 @@ const AuthPanel = ({ notice, onSubmit, onClose }) => {
             placeholder="admin@kalash.local"
           />
         </label>
-        <label className="full-width">
+        <label className={form.mode === 'register' ? 'full-width' : ''}>
           Password
           <input
             name="password"
@@ -64,7 +84,7 @@ const AuthPanel = ({ notice, onSubmit, onClose }) => {
       </div>
 
       <button className="place-order-button" type="submit">
-        Sign In
+        {form.mode === 'register' ? 'Create Account' : 'Sign In'}
       </button>
     </form>
   )

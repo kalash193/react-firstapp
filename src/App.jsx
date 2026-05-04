@@ -8,6 +8,7 @@ import OrderSuccess from './components/orderSuccess'
 import OrderTracking from './components/orderTracking'
 import AuthPanel from './components/authPanel'
 import AdminDashboard from './components/adminDashboard'
+import { api } from './services/api'
 import './App.css'
 
 const initialCheckoutForm = {
@@ -49,10 +50,7 @@ const getOrderEta = (createdAt) => {
 }
 
 function App() {
-  const [authUser, setAuthUser] = useState(() => {
-    const savedUser = window.localStorage.getItem('kalash-store-user')
-    return savedUser ? JSON.parse(savedUser) : null
-  })
+  const [authUser, setAuthUser] = useState(null)
   const [cartItems, setCartItems] = useState(() => {
     const savedCart = window.localStorage.getItem('kalash-store-cart')
     return savedCart ? JSON.parse(savedCart) : []
@@ -65,6 +63,7 @@ function App() {
   const [checkoutForm, setCheckoutForm] = useState(initialCheckoutForm)
   const [placedOrder, setPlacedOrder] = useState(null)
   const [authNotice, setAuthNotice] = useState('')
+  const [checkoutNotice, setCheckoutNotice] = useState('')
 
   useEffect(() => {
     const revealItems = document.querySelectorAll('[data-reveal]')
@@ -95,42 +94,39 @@ function App() {
   }, [orders])
 
   useEffect(() => {
-    if (authUser) {
-      window.localStorage.setItem('kalash-store-user', JSON.stringify(authUser))
-      return
+    api
+      .me()
+      .then(({ user }) => setAuthUser(user))
+      .catch(() => setAuthUser(null))
+  }, [])
+
+  const signInUser = async ({ mode, name, email, password }) => {
+    try {
+      if (!email.trim() || password.length < 8) {
+        setAuthNotice('Enter an email and a password with at least 8 characters.')
+        return
+      }
+
+      const action = mode === 'register' ? api.register : api.login
+      const { user } = await action({ name, email, password })
+
+      setAuthUser(user)
+      setAuthNotice('')
+      setActivePanel(null)
+    } catch (error) {
+      setAuthNotice(error.message)
     }
-
-    window.localStorage.removeItem('kalash-store-user')
-  }, [authUser])
-
-  const signInUser = async ({ name, email, password }) => {
-    if (!email.trim() || password.length < 6) {
-      setAuthNotice('Enter an email and a password with at least 6 characters.')
-      return
-    }
-
-    const passwordHash = await crypto.subtle.digest(
-      'SHA-256',
-      new TextEncoder().encode(password),
-    )
-    const hashHex = Array.from(new Uint8Array(passwordHash))
-      .map((byte) => byte.toString(16).padStart(2, '0'))
-      .join('')
-
-    setAuthUser({
-      id: Date.now(),
-      name: name.trim() || email.split('@')[0],
-      email: email.trim().toLowerCase(),
-      role: email.toLowerCase().includes('admin') ? 'admin' : 'customer',
-      passwordHash: hashHex,
-    })
-    setAuthNotice('')
-    setActivePanel(null)
   }
 
-  const signOutUser = () => {
-    setAuthUser(null)
-    setActivePanel(null)
+  const signOutUser = async () => {
+    try {
+      await api.logout()
+    } catch {
+      // The UI still clears the session state if the backend is unavailable.
+    } finally {
+      setAuthUser(null)
+      setActivePanel(null)
+    }
   }
 
   const requireAuth = (nextPanel) => {
@@ -193,7 +189,7 @@ function App() {
     setCheckoutForm((currentForm) => ({ ...currentForm, [name]: value }))
   }
 
-  const placeOrder = () => {
+  const placeOrder = async () => {
     const requiredFields = ['fullName', 'phone', 'address', 'city', 'state', 'pincode']
     const hasMissingFields = requiredFields.some((field) => !checkoutForm[field].trim())
 
@@ -201,6 +197,44 @@ function App() {
       return
     }
 
+    setCheckoutNotice('')
+
+    try {
+      const response = await api.checkout({
+        items: cartItems.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+        })),
+        payment_method: checkoutForm.paymentMethod,
+        delivery_slot: checkoutForm.deliverySlot,
+        shipping_address: `${checkoutForm.address}, ${checkoutForm.city}, ${checkoutForm.state} - ${checkoutForm.pincode}`,
+      })
+
+      const orderId = `KS${response.order_id}`
+      const createdAt = Date.now()
+      const orderRecord = {
+        ...checkoutForm,
+        id: orderId,
+        userId: authUser?.id,
+        customerEmail: authUser?.email,
+        total: response.total,
+        items: cartItems,
+        createdAt,
+        eta: getOrderEta(createdAt),
+        statusIndex: getOrderStatusIndex(createdAt),
+        paymentLabel: paymentLabels[checkoutForm.paymentMethod],
+      }
+
+      setPlacedOrder(orderRecord)
+      setOrders((currentOrders) => [orderRecord, ...currentOrders].slice(0, 6))
+      setCartItems([])
+      setActivePanel('placed')
+    } catch (error) {
+      setCheckoutNotice(error.message)
+    }
+  }
+
+  const createLocalOrderPreview = () => {
     const orderId = `KS${Date.now().toString().slice(-8)}`
     const createdAt = Date.now()
     const orderRecord = {
@@ -368,10 +402,12 @@ function App() {
                 cartItems={cartItems}
                 totals={totals}
                 form={checkoutForm}
+                notice={checkoutNotice}
                 onFieldChange={updateCheckoutField}
                 onPaymentChange={updateCheckoutField}
                 onBack={() => setActivePanel('cart')}
                 onPlaceOrder={placeOrder}
+                onLocalPreview={createLocalOrderPreview}
               />
             ) : null}
 

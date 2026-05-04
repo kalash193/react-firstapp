@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import products from '../data/products'
+import { api } from '../services/api'
 
 const demoUsers = [
   { id: 1, name: 'Kalash Date', email: 'kalash@example.com', role: 'customer' },
@@ -8,6 +9,9 @@ const demoUsers = [
 ]
 
 const AdminDashboard = ({ orders, user, onClose }) => {
+  const [backendNotice, setBackendNotice] = useState('')
+  const [backendUsers, setBackendUsers] = useState([])
+  const [backendOrders, setBackendOrders] = useState([])
   const [inventory, setInventory] = useState(
     products.map((product, index) => ({
       ...product,
@@ -16,7 +20,30 @@ const AdminDashboard = ({ orders, user, onClose }) => {
     })),
   )
 
-  const revenue = orders.reduce((total, order) => total + order.total, 0)
+  useEffect(() => {
+    Promise.all([api.adminProducts(), api.adminOrders(), api.adminUsers()])
+      .then(([productsResponse, ordersResponse, usersResponse]) => {
+        if (productsResponse.products.length > 0) {
+          setInventory(
+            productsResponse.products.map((product) => ({
+              ...product,
+              price: Number(product.price),
+              originalPrice: Number(product.original_price),
+              image: products.find((item) => item.id === Number(product.id))?.image,
+              status: Number(product.stock) <= 5 ? 'Low stock' : 'Active',
+            })),
+          )
+        }
+
+        setBackendOrders(ordersResponse.orders)
+        setBackendUsers(usersResponse.users)
+        setBackendNotice('')
+      })
+      .catch((error) => setBackendNotice(error.message))
+  }, [])
+
+  const visibleOrders = backendOrders.length > 0 ? backendOrders : orders
+  const revenue = visibleOrders.reduce((total, order) => total + Number(order.total), 0)
   const users = useMemo(() => {
     const signedInUser = {
       id: user.id,
@@ -25,8 +52,12 @@ const AdminDashboard = ({ orders, user, onClose }) => {
       role: user.role,
     }
 
+    if (backendUsers.length > 0) {
+      return backendUsers
+    }
+
     return [signedInUser, ...demoUsers.filter((demoUser) => demoUser.email !== user.email)]
-  }, [user])
+  }, [backendUsers, user])
 
   const updateStock = (productId, direction) => {
     setInventory((currentInventory) =>
@@ -54,6 +85,12 @@ const AdminDashboard = ({ orders, user, onClose }) => {
         </button>
       </div>
 
+      {backendNotice ? (
+        <p className="auth-notice">
+          Backend admin API unavailable: {backendNotice}
+        </p>
+      ) : null}
+
       <div className="admin-stats">
         <div>
           <span>Products</span>
@@ -61,7 +98,7 @@ const AdminDashboard = ({ orders, user, onClose }) => {
         </div>
         <div>
           <span>Orders</span>
-          <strong>{orders.length}</strong>
+          <strong>{visibleOrders.length}</strong>
         </div>
         <div>
           <span>Revenue</span>
@@ -103,17 +140,19 @@ const AdminDashboard = ({ orders, user, onClose }) => {
       <section className="admin-section">
         <h3>Order Tracking</h3>
         <div className="admin-table">
-          {orders.length === 0 ? (
+          {visibleOrders.length === 0 ? (
             <p className="cart-empty">No customer orders have been placed yet.</p>
           ) : (
-            orders.map((order) => (
+            visibleOrders.map((order) => (
               <article className="admin-row" key={order.id}>
                 <div>
                   <strong>#{order.id}</strong>
-                  <span>{order.fullName} | {order.paymentLabel}</span>
+                  <span>
+                    {order.fullName || order.customer_name} | {order.paymentLabel || order.payment_method}
+                  </span>
                 </div>
                 <span className="admin-chip">Rs. {order.total}</span>
-                <span>{order.deliverySlot}</span>
+                <span>{order.deliverySlot || order.delivery_slot}</span>
               </article>
             ))
           )}

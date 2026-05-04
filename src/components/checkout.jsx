@@ -11,10 +11,12 @@ const Checkout = ({
   cartItems,
   totals,
   form,
+  notice,
   onFieldChange,
   onPaymentChange,
   onBack,
   onPlaceOrder,
+  onLocalPreview,
 }) => {
   return (
     <div className="checkout-sheet">
@@ -27,6 +29,15 @@ const Checkout = ({
           Back to cart
         </button>
       </div>
+
+      {notice ? (
+        <div className="auth-notice checkout-notice">
+          <span>{notice}</span>
+          <button type="button" onClick={onLocalPreview}>
+            Preview locally
+          </button>
+        </div>
+      ) : null}
 
       <div className="checkout-layout">
         <section className="checkout-main">

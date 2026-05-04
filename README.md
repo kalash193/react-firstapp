@@ -35,6 +35,37 @@ npm run build
 npm run preview
 ```
 
+## Run Frontend And Backend Together
+
+1. Start MySQL in XAMPP.
+2. Import `backend/schema.sql` in phpMyAdmin.
+3. Start the PHP API from the project root:
+
+```bash
+php -S 127.0.0.1:8000 -t backend/public
+```
+
+4. Start the React app:
+
+```bash
+npm run dev -- --host 127.0.0.1
+```
+
+5. Open `http://127.0.0.1:5173`.
+
+The React app calls the PHP API at `http://127.0.0.1:8000` by default. To use a different backend URL, create a `.env` file with:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Default admin login after importing the schema:
+
+```text
+Email: admin@kalash.local
+Password: admin12345
+```
+
 ## Folder Structure
 
 ```text
@@ -72,18 +103,18 @@ react-firstapp/
 
 ## How The App Works
 
-`src/App.jsx` owns the main storefront state:
+`src/App.jsx` owns the main storefront state and calls the PHP backend through `src/services/api.js`:
 
 - `authUser`: signed-in user for protected checkout and admin access
 - `cartItems`: products and quantities in the cart
 - `orders`: recent placed orders
 - `activePanel`: the current modal panel for cart, checkout, auth, order success, or admin
 
-The cart stores data in `localStorage`, calculates subtotal/shipping/platform fee totals, and opens checkout only after sign-in. Orders are stored locally for the frontend demo and shown in the tracking section.
+The cart stores data in `localStorage`, calculates subtotal/shipping/platform fee totals, and opens checkout only after sign-in. Checkout posts cart items to `backend/public/checkout.php`, then stores a local copy of the confirmed order for the tracking section.
 
 ## Authentication And Protected Access
 
-The React UI includes a sign-in panel and blocks checkout/admin access until the user is signed in. The PHP backend adds the server-side version of the same protection:
+The React UI includes a sign-in panel connected to the PHP auth endpoints and blocks checkout/admin access until the user is signed in. The PHP backend adds the server-side version of the same protection:
 
 - `backend/public/register.php` creates users with `password_hash()`.
 - `backend/public/login.php` verifies passwords with `password_verify()` and starts a PHP session.
@@ -125,11 +156,10 @@ The app uses plain CSS with responsive breakpoints:
 
 ## Current Limitations
 
-The backend files are ready as a PHP/MySQL scaffold, but the React app still uses local demo state instead of calling those PHP endpoints directly. Payment processing is simulated and does not connect to a live gateway.
+Payment processing is simulated and does not connect to a live gateway. The frontend now connects to the PHP auth, checkout, and admin APIs, while order tracking still keeps a local UI copy so the latest order appears immediately after checkout.
 
 ## Good Next Improvements
 
-- Connect React auth, checkout, and admin forms to the PHP API endpoints
 - Add category filters and product search
 - Add React Router for real protected pages
 - Add a live payment gateway

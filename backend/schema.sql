@@ -73,10 +73,21 @@ CREATE TABLE cart_items (
     ON DELETE CASCADE
 );
 
-INSERT INTO categories (name, slug) VALUES
-  ('Audio', 'audio'),
-  ('Home Office', 'home-office'),
-  ('Lifestyle', 'lifestyle'),
-  ('Decor', 'decor'),
-  ('Wearables', 'wearables'),
-  ('Accessories', 'accessories');
+INSERT IGNORE INTO categories (id, name, slug) VALUES
+  (1, 'Audio', 'audio'),
+  (2, 'Home Office', 'home-office'),
+  (3, 'Lifestyle', 'lifestyle'),
+  (4, 'Decor', 'decor'),
+  (5, 'Wearables', 'wearables'),
+  (6, 'Accessories', 'accessories');
+
+INSERT IGNORE INTO users (name, email, password_hash, role) VALUES
+  ('Store Admin', 'admin@kalash.local', '$2y$10$rFLuM312obm4W.ldfg6ioe4D.s0gyCOCeNszZ6Vcnl4n8zoA6Wh2O', 'admin');
+
+INSERT IGNORE INTO products (id, category_id, name, description, price, original_price, stock, status) VALUES
+  (1, 1, 'Wireless Sound Pods', 'Compact earbuds with rich bass, fast pairing, and long battery life.', 2499.00, 3199.00, 40, 'active'),
+  (2, 2, 'Minimal Desk Lamp', 'Soft ambient glow with adjustable brightness for focused work.', 1799.00, 2299.00, 35, 'active'),
+  (3, 3, 'Urban Carry Bottle', 'Leak-proof steel bottle designed for daily commutes and travel.', 899.00, 1199.00, 60, 'active'),
+  (4, 4, 'Cloud Cushion Set', 'Soft textured cushions that instantly warm up any living space.', 1599.00, 2099.00, 28, 'active'),
+  (5, 5, 'Smart Fitness Band', 'Track movement, heart rate, sleep, and workouts with ease.', 3299.00, 3899.00, 24, 'active'),
+  (6, 6, 'Travel Tech Pouch', 'Organized compartments for chargers, cables, and daily essentials.', 1099.00, 1499.00, 45, 'active');
