@@ -6,6 +6,8 @@ import Cart from './components/cart'
 import Checkout from './components/checkout'
 import OrderSuccess from './components/orderSuccess'
 import OrderTracking from './components/orderTracking'
+import AuthPanel from './components/authPanel'
+import AdminDashboard from './components/adminDashboard'
 import './App.css'
 
 const initialCheckoutForm = {
@@ -47,6 +49,10 @@ const getOrderEta = (createdAt) => {
 }
 
 function App() {
+  const [authUser, setAuthUser] = useState(() => {
+    const savedUser = window.localStorage.getItem('kalash-store-user')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
   const [cartItems, setCartItems] = useState(() => {
     const savedCart = window.localStorage.getItem('kalash-store-cart')
     return savedCart ? JSON.parse(savedCart) : []
@@ -58,6 +64,7 @@ function App() {
   const [activePanel, setActivePanel] = useState(null)
   const [checkoutForm, setCheckoutForm] = useState(initialCheckoutForm)
   const [placedOrder, setPlacedOrder] = useState(null)
+  const [authNotice, setAuthNotice] = useState('')
 
   useEffect(() => {
     const revealItems = document.querySelectorAll('[data-reveal]')
@@ -86,6 +93,62 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem('kalash-store-orders', JSON.stringify(orders))
   }, [orders])
+
+  useEffect(() => {
+    if (authUser) {
+      window.localStorage.setItem('kalash-store-user', JSON.stringify(authUser))
+      return
+    }
+
+    window.localStorage.removeItem('kalash-store-user')
+  }, [authUser])
+
+  const signInUser = async ({ name, email, password }) => {
+    if (!email.trim() || password.length < 6) {
+      setAuthNotice('Enter an email and a password with at least 6 characters.')
+      return
+    }
+
+    const passwordHash = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(password),
+    )
+    const hashHex = Array.from(new Uint8Array(passwordHash))
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('')
+
+    setAuthUser({
+      id: Date.now(),
+      name: name.trim() || email.split('@')[0],
+      email: email.trim().toLowerCase(),
+      role: email.toLowerCase().includes('admin') ? 'admin' : 'customer',
+      passwordHash: hashHex,
+    })
+    setAuthNotice('')
+    setActivePanel(null)
+  }
+
+  const signOutUser = () => {
+    setAuthUser(null)
+    setActivePanel(null)
+  }
+
+  const requireAuth = (nextPanel) => {
+    if (!authUser) {
+      setAuthNotice('Sign in to access protected checkout and admin areas.')
+      setActivePanel('auth')
+      return
+    }
+
+    if (nextPanel === 'admin' && authUser.role !== 'admin') {
+      setAuthNotice('Admin access requires an admin account. Use an email containing admin for this demo.')
+      setActivePanel('auth')
+      return
+    }
+
+    setAuthNotice('')
+    setActivePanel(nextPanel)
+  }
 
   const addToCart = (item) => {
     setCartItems((currentItems) => {
@@ -143,6 +206,8 @@ function App() {
     const orderRecord = {
       ...checkoutForm,
       id: orderId,
+      userId: authUser?.id,
+      customerEmail: authUser?.email,
       total,
       items: cartItems,
       createdAt,
@@ -167,6 +232,10 @@ function App() {
       <Navbar
         cartcount={itemCount}
         onCartClick={() => setActivePanel('cart')}
+        user={authUser}
+        onAuthClick={() => setActivePanel('auth')}
+        onAdminClick={() => requireAuth('admin')}
+        onLogout={signOutUser}
       />
 
       <main className="app-content">
@@ -290,7 +359,7 @@ function App() {
                 onClose={closePanel}
                 onIncrease={addToCart}
                 onDecrease={decreaseQuantity}
-                onCheckout={() => setActivePanel('checkout')}
+                onCheckout={() => requireAuth('checkout')}
               />
             ) : null}
 
@@ -310,6 +379,22 @@ function App() {
               <OrderSuccess
                 order={placedOrder}
                 onContinueShopping={closePanel}
+                onClose={closePanel}
+              />
+            ) : null}
+
+            {activePanel === 'auth' ? (
+              <AuthPanel
+                notice={authNotice}
+                onSubmit={signInUser}
+                onClose={closePanel}
+              />
+            ) : null}
+
+            {activePanel === 'admin' && authUser ? (
+              <AdminDashboard
+                orders={orders}
+                user={authUser}
                 onClose={closePanel}
               />
             ) : null}

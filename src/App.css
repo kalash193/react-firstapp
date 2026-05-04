@@ -631,7 +631,9 @@
 }
 
 .checkout-sheet,
-.order-success {
+.order-success,
+.auth-panel,
+.admin-dashboard {
   display: flex;
   flex-direction: column;
   gap: 22px;
@@ -834,6 +836,92 @@
   flex-wrap: wrap;
 }
 
+.auth-notice {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.auth-form-grid {
+  margin-top: 0;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-stats div {
+  padding: 18px;
+  border-radius: 20px;
+  background: #fffaf0;
+  border: 1px solid #fed7aa;
+}
+
+.admin-stats span,
+.admin-row span {
+  display: block;
+  color: #57534e;
+  font-size: 0.9rem;
+}
+
+.admin-stats strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.3rem;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-table {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fffaf0;
+  border: 1px solid #fed7aa;
+}
+
+.admin-row:not(:has(img)) {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.admin-row img {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.admin-chip {
+  justify-self: start;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534 !important;
+  font-weight: 800;
+}
+
+.admin-chip.warning {
+  background: #fef3c7;
+  color: #92400e !important;
+}
+
 [data-reveal] {
   opacity: 0;
   transform: translateY(26px) scale(0.985);
@@ -906,7 +994,8 @@
 
   .checkout-layout,
   .success-grid,
-  .tracking-progress {
+  .tracking-progress,
+  .admin-stats {
     grid-template-columns: 1fr;
   }
 
@@ -970,6 +1059,12 @@
 
   .checkout-items li {
     grid-template-columns: 1fr;
+  }
+
+  .admin-row,
+  .admin-row:not(:has(img)) {
+    grid-template-columns: 1fr;
+    justify-items: start;
   }
 
   .checkout-form-grid {
